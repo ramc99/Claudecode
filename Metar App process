@@ -1,0 +1,229 @@
+--------------------------------------------------------------------------------
+7. HOW WE BUILT THE METAR APP — STEP BY STEP
+--------------------------------------------------------------------------------
+
+WHAT IS METAR?
+  METAR (Meteorological Aerodrome Report) is the international standard format
+  for reporting current weather at airports. It includes wind, visibility,
+  temperature, pressure, sky conditions, and more. Example:
+
+    KJFK 151856Z 28015KT 10SM BKN250 M01/M15 A3040 RMK AO2
+
+  Decoded:
+    KJFK      = JFK Airport, New York
+    151856Z   = 15th day, 18:56 UTC
+    28015KT   = Wind from 280° at 15 knots
+    10SM      = Visibility 10 statute miles
+    BKN250    = Broken clouds at 25,000 ft
+    M01/M15   = Temperature -1°C, Dewpoint -15°C
+    A3040     = Altimeter 30.40 inHg
+
+STEP 1 — PROJECT SETUP
+  We asked Claude Code:
+    "Create a Flask METAR weather application"
+
+  Claude created the project folder structure:
+
+    metar-app/
+    ├── app.py              ← Main Flask application
+    ├── requirements.txt    ← Python dependencies
+    ├── airports.csv        ← 140+ airport reference data
+    ├── README.md           ← Documentation
+    ├── .gitignore          ← Git exclusions
+    ├── templates/
+    │   ├── base.html       ← Shared layout (navbar, footer)
+    │   ├── index.html      ← Home/search page
+    │   ├── metar.html      ← METAR result page
+    │   ├── airports.html   ← Airport reference table
+    │   └── error.html      ← Error page
+    └── static/
+        ├── css/style.css   ← Custom styles
+        └── js/main.js      ← Input handling
+
+STEP 2 — VIRTUAL ENVIRONMENT
+  Claude ran these commands to create an isolated Python environment:
+
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+
+  Why use a venv?
+  A virtual environment keeps your project's dependencies separate from
+  system Python. This prevents version conflicts between projects.
+
+  Dependencies installed:
+    flask>=3.0.0       — Web framework
+    requests>=2.31.0   — HTTP requests to fetch METAR data
+    metar>=1.10.0      — METAR string parser
+
+STEP 3 — FETCHING METAR DATA
+  Data is fetched live from NOAA (National Oceanic and Atmospheric
+  Administration) using a public URL:
+
+    https://tgftp.nws.noaa.gov/data/observations/metar/stations/KJFK.TXT
+
+  The file returned has two lines:
+    Line 1: Observation timestamp  (e.g. 2025/05/05 18:56)
+    Line 2: Raw METAR string       (e.g. KJFK 050856Z 28015KT ...)
+
+  BUG FOUND AND FIXED:
+    The original code took lines[0] (the timestamp) instead of lines[1]
+    (the actual METAR). Claude identified and fixed this.
+
+STEP 4 — PARSING THE METAR STRING
+  The Python 'metar' library parses the raw METAR string into fields.
+  Claude wrote a parse_metar() function that extracts:
+
+    - Temperature in °C and °F
+    - Dewpoint in °C and °F
+    - Wind speed in knots and mph
+    - Wind direction in degrees
+    - Wind gusts
+    - Visibility in statute miles and metres
+    - Sky condition layers (FEW, SCT, BKN, OVC + altitude)
+    - Ceiling altitude in feet
+    - Pressure in inHg and hPa
+    - Present weather (rain, fog, snow, etc.)
+
+  BUG FOUND AND FIXED:
+    Sky layers were being converted with str(), which gave raw Python
+    object strings like:
+      ('FEW', <metar.Datatypes.distance object at 0x7fc...>, None)
+
+    Claude fixed this with a proper format_sky_layer() function that
+    reads the altitude value correctly and formats it as "FEW015".
+
+    Also fixed: ceiling detection was parsing string representations
+    instead of reading the tuple directly, so ceiling was always null.
+
+STEP 5 — FLIGHT CATEGORY CALCULATION
+  Claude added logic to calculate the FAA flight category from ceiling
+  and visibility:
+
+    LIFR  — Ceiling < 500 ft  OR  Visibility < 1 SM    (Red)
+    IFR   — Ceiling 500–999 ft OR Visibility 1–3 SM    (Yellow)
+    MVFR  — Ceiling 1000–3000 ft OR Visibility 3–5 SM  (Blue)
+    VFR   — Ceiling > 3000 ft AND Visibility > 5 SM    (Green)
+
+STEP 6 — FLASK ROUTES
+  Claude set up these URL routes in app.py:
+
+    GET /                    → Home page with search form
+    GET /search?q=<query>    → Search by name, city, ICAO, or IATA
+    GET /metar/<ICAO>        → METAR result page (HTML)
+    GET /api/metar/<ICAO>    → METAR data as JSON
+    GET /airports            → Full airport reference table
+    GET /api/airports?q=...  → Live airport search (used by autocomplete)
+    GET /download/airports.csv → Download the CSV file
+
+STEP 7 — UI WITH BOOTSTRAP 5
+  Claude built the frontend using Bootstrap 5 (via CDN) with:
+
+    - Navbar with search bar on every page
+    - Home page with live autocomplete dropdown (JavaScript fetch API)
+    - Result page showing all weather fields as cards
+    - Dark card displaying the raw METAR string with a Copy button
+    - Flight category badge (colour-coded)
+    - Sky cover legend and flight category legend
+    - "Try Another Airport" button at the bottom
+    - Responsive layout (works on mobile)
+
+STEP 8 — AIRPORT CSV AND NAME SEARCH
+  Claude created airports.csv with 140+ airports including:
+    ICAO code, IATA code, Airport name, City, Country
+
+  This enables:
+    - Searching by airport name (e.g. "Heathrow")
+    - Searching by city (e.g. "London", "Delhi", "Tokyo")
+    - Searching by IATA code (e.g. "LHR", "JFK", "DEL")
+    - METAR results showing full airport name and location
+    - A downloadable CSV reference file
+
+STEP 9 — GIT AND GITHUB
+  Claude initialized a git repository and pushed to GitHub:
+
+    git init
+    git add .
+    git commit -m "Initial commit"
+    git remote add origin https://github.com/ramc99/Metar-app.git
+    git push -u origin main
+
+  Each time a feature was added or a bug was fixed, Claude committed
+  and pushed automatically with a descriptive commit message.
+
+--------------------------------------------------------------------------------
+8. RUNNING THE APP
+--------------------------------------------------------------------------------
+
+  cd /home/ramchand/metar-app
+  source venv/bin/activate
+  python app.py
+
+  Then open:  http://localhost:5000
+
+To stop:
+  Press Ctrl+C in the terminal, or run:
+  kill $(lsof -t -i:5000)
+
+--------------------------------------------------------------------------------
+9. TESTING WITH CURL
+--------------------------------------------------------------------------------
+
+  # Get METAR as JSON
+  curl http://localhost:5000/api/metar/KJFK
+
+  # Search airports by name
+  curl "http://localhost:5000/api/airports?q=london"
+
+  # Test an invalid airport
+  curl http://localhost:5000/api/metar/XXXX
+
+--------------------------------------------------------------------------------
+10. WHAT CLAUDE CODE DID IN THIS PROJECT
+--------------------------------------------------------------------------------
+
+  Task                                      Tool Used
+  ----------------------------------------  ----------------------------
+  Read existing Metar.py and app.py         Read file tool
+  Create project folder structure           Bash (mkdir)
+  Write all Python and HTML files           Write / Edit file tools
+  Create and activate virtual environment  Bash
+  Install Python packages                   Bash (pip install)
+  Identify and fix bugs in sky parsing      Read + Edit tools
+  Run the Flask app in background           Bash (background mode)
+  Test all API endpoints                    Bash (curl)
+  Initialize git repository                 Bash (git init/add/commit)
+  Push to GitHub                            Bash (git push)
+  Create airports.csv with 140+ airports   Write file tool
+  Add live autocomplete search              Edit file (JS + Python)
+
+--------------------------------------------------------------------------------
+11. TIPS FOR USING CLAUDE CODE EFFECTIVELY
+--------------------------------------------------------------------------------
+
+  - Be specific: "Fix the bug where sky condition shows a Python object"
+    is better than "Fix the bug"
+
+  - Reference files: "In app.py, the parse_metar function has a bug..."
+
+  - Ask for explanations: "Explain why the ceiling is always null"
+
+  - Iterate: Start simple, then ask for improvements one at a time
+
+  - Use /clear if the conversation gets too long and Claude loses focus
+
+  - Review every file edit before approving — Claude shows the diff
+
+--------------------------------------------------------------------------------
+12. USEFUL LINKS
+--------------------------------------------------------------------------------
+
+  Claude Code docs:     https://docs.anthropic.com/claude-code
+  Anthropic console:    https://console.anthropic.com
+  NOAA METAR data:      https://tgftp.nws.noaa.gov/data/observations/metar/
+  METAR decoder:        https://aviationweather.gov/metar
+  This project repo:    https://github.com/ramc99/Metar-app-retested-and-improved-
+
+================================================================================
+                              END OF GUIDE
+================================================================================
