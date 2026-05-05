@@ -1,0 +1,119 @@
+================================================================================
+         CLAUDE CODE — FROM INSTALLATION TO BUILDING THE METAR APP
+================================================================================
+
+This guide covers everything from installing Claude Code to how we built the
+full METAR weather application step by step.
+
+--------------------------------------------------------------------------------
+1. WHAT IS CLAUDE CODE?
+--------------------------------------------------------------------------------
+
+Claude Code is Anthropic's official AI-powered command-line tool (CLI) that
+lets you interact with Claude directly inside your terminal or IDE. It can:
+
+  - Read, write, and edit files in your project
+  - Run shell commands and terminal scripts
+  - Search and navigate codebases
+  - Fix bugs, add features, and explain code
+  - Commit to git and push to GitHub
+  - Spawn background agents for parallel tasks
+
+It is NOT a chatbot tab — it lives inside your terminal and operates directly
+on your real files and system.
+
+--------------------------------------------------------------------------------
+2. REQUIREMENTS
+--------------------------------------------------------------------------------
+
+  - Node.js version 18 or higher
+  - npm (comes with Node.js)
+  - A terminal (Linux, macOS, or Windows WSL)
+  - An Anthropic API key  (get one at console.anthropic.com)
+  - Git (optional, for version control tasks)
+
+Check your Node version:
+  node --version
+
+--------------------------------------------------------------------------------
+3. INSTALLATION
+--------------------------------------------------------------------------------
+
+Step 1 — Install Claude Code globally via npm:
+
+  npm install -g @anthropic-ai/claude-code
+
+Step 2 — Verify the installation:
+
+  claude --version
+
+Step 3 — Authenticate with your Anthropic API key:
+
+  claude
+
+  On first run it will open a browser window to log in or ask for your API key.
+  Your key is stored securely and used for all future sessions.
+
+  Alternatively, set it as an environment variable:
+
+    export ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxxxxx
+
+  Add that line to your ~/.bashrc or ~/.zshrc to persist it.
+
+--------------------------------------------------------------------------------
+4. STARTING A SESSION
+--------------------------------------------------------------------------------
+
+Navigate to your project folder and start Claude Code:
+
+  cd /your/project
+  claude
+
+This opens an interactive prompt. You can type instructions in plain English.
+Claude reads your files, writes code, and runs commands — all with your
+approval.
+
+Useful startup flags:
+
+  claude                      # Start interactive session
+  claude "fix the login bug"  # One-shot command, then exit
+  claude --help               # See all available flags
+
+--------------------------------------------------------------------------------
+5. KEY COMMANDS INSIDE CLAUDE CODE
+--------------------------------------------------------------------------------
+
+  /help          — Show all available slash commands
+  /clear         — Clear the conversation context
+  /config        — Change settings (model, theme, etc.)
+  /compact       — Compress conversation to save context
+  /cost          — Show token usage and cost for this session
+  /exit or /quit — End the session
+
+Keyboard shortcuts:
+
+  Enter          — Send your message
+  Shift+Enter    — Add a new line without sending
+  Ctrl+C         — Cancel the current tool call or interrupt
+  Up/Down arrow  — Browse previous messages
+
+--------------------------------------------------------------------------------
+6. HOW CLAUDE CODE WORKS
+--------------------------------------------------------------------------------
+
+When you type an instruction, Claude:
+
+  1. Reads relevant files in your project
+  2. Reasons about what needs to change
+  3. Proposes a tool call (edit file / run command / search)
+  4. Waits for your approval (or auto-approves if you allow it)
+  5. Executes the action and shows you the result
+  6. Continues until the task is complete
+
+You stay in control — every file edit and shell command is shown before it runs.
+
+Permission modes:
+
+  Default  — Claude asks permission for most actions
+  Auto     — Claude runs approved tool types without asking each time
+  Manual   — Claude asks before every single action
